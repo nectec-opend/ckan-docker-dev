@@ -1,70 +1,74 @@
 #!/bin/sh
+set -e
 
-# if [[ $CKAN__PLUGINS == *"datapusher"* ]]; then
-#     # Add ckan.datapusher.api_token to the CKAN config file (updated with corrected value later)
-#     echo "Setting a temporary value for ckan.datapusher.api_token"
-#     ckan config-tool $CKAN_INI ckan.datapusher.api_token=xxx
-# fi
+echo "🚀 Starting CKAN in DEV MODE"
 
 echo "🔍 Checking CKAN config at ${CKAN_INI}"
 
 if [ ! -f "${CKAN_INI}" ]; then
   echo "📝 ckan.ini not found, generating..."
   ckan generate config "${CKAN_INI}"
-
-  # ckan config-tool "${CKAN_INI}" \
-  #   "ckan.site_url = http://localhost:5000" \
-  #   "ckan.plugins = image_view text_view recline_view datastore envvars" \
-
-  echo "✅ ckan.ini generated at ${CKAN_INI}"
+  echo "✅ ckan.ini generated"
 else
   echo "✅ ckan.ini already exists"
 fi
 
-# Set debug to true
-echo "Enabling debug mode"
+echo "🐞 Enabling debug mode"
 ckan config-tool $CKAN_INI -s DEFAULT "debug = true"
 
-# Set up the Secret key used by Beaker and Flask
-# This can be overriden using a CKAN___BEAKER__SESSION__SECRET env var
-if grep -E "beaker.session.secret ?= ?$" $CKAN_INI
-then
-    echo "Setting beaker.session.secret in ini file"
-    ckan config-tool $CKAN_INI "beaker.session.secret=$(python3 -c 'import secrets; print(secrets.token_urlsafe())')"
-    ckan config-tool $CKAN_INI "WTF_CSRF_SECRET_KEY=$(python3 -c 'import secrets; print(secrets.token_urlsafe())')"
+# Generate secrets if empty
+if grep -E "beaker.session.secret ?= ?$" $CKAN_INI; then
+    echo "🔐 Generating secrets"
+    SECRET=$(python3 -c 'import secrets; print(secrets.token_urlsafe())')
     JWT_SECRET=$(python3 -c 'import secrets; print("string:" + secrets.token_urlsafe())')
+
+    ckan config-tool $CKAN_INI "beaker.session.secret=${SECRET}"
+    ckan config-tool $CKAN_INI "WTF_CSRF_SECRET_KEY=${SECRET}"
     ckan config-tool $CKAN_INI "api_token.jwt.encode.secret=${JWT_SECRET}"
     ckan config-tool $CKAN_INI "api_token.jwt.decode.secret=${JWT_SECRET}"
 fi
 
-# Update the plugins setting in the ini file with the values defined in the env var
-echo "Loading the following plugins: $CKAN__PLUGINS"
+echo "🔌 Installing DEV extensions..."
+
+pip install --upgrade pip
+
+for dir in /srv/app/src_extensions/*; do
+  if [ -f "$dir/setup.py" ]; then
+    ext_name=$(basename "$dir")
+    echo "📦 Installing $ext_name (editable mode)"
+    pip install -e "$dir"
+
+    if [ -f "$dir/requirements.txt" ]; then
+      echo "📦 Installing requirements for $ext_name"
+      pip install -r "$dir/requirements.txt"
+    fi
+
+    # 🔥 Special handling for xloader
+    if [ "$ext_name" = "ckanext-xloader" ]; then
+      echo "🔐 Installing requests[security] for xloader"
+      pip install -U "requests[security]"
+    fi
+    
+  fi
+done
+
+echo "📦 Loading plugins from ENV"
 ckan config-tool $CKAN_INI "ckan.plugins = $CKAN__PLUGINS"
 
-# Update test-core.ini DB, SOLR & Redis settings
-echo "Loading test settings into test-core.ini"
+echo "⚙ Loading DEV DB / Solr settings"
 ckan config-tool $CKAN_INI \
-    "sqlalchemy.url = $TEST_CKAN_SQLALCHEMY_URL" \
-    "ckan.datastore.write_url = $TEST_CKAN_DATASTORE_WRITE_URL" \
-    "ckan.datastore.read_url = $TEST_CKAN_DATASTORE_READ_URL" \
-    "solr_url = $TEST_CKAN_SOLR_URL" \
-    "ckan.redis.url = $TEST_CKAN_REDIS_URL"
+    "sqlalchemy.url = $CKAN_SQLALCHEMY_URL" \
+    "ckan.datastore.write_url = $CKAN_DATASTORE_WRITE_URL" \
+    "ckan.datastore.read_url = $CKAN_DATASTORE_READ_URL" \
+    "solr_url = $CKAN_SOLR_URL" \
+    "ckan.redis.url = $CKAN_REDIS_URL"
 
-# Run the prerun script to init CKAN and create the default admin user
+echo "🏗 Running prerun.py"
 python3 prerun.py
 
-# Run any startup scripts provided by images extending this one
-if [[ -d "/docker-entrypoint.d" ]]
-then
-    for f in /docker-entrypoint.d/*; do
-        case "$f" in
-            *.sh)     echo "$0: Running init file $f"; . "$f" ;;
-            *.py)     echo "$0: Running init file $f"; python3 "$f"; echo ;;
-            *)        echo "$0: Ignoring $f (not an sh or py file)" ;;
-        esac
-        echo
-    done
-fi
+echo "🌍 Starting CKAN Dev Server"
+
+chmod -R 777 /srv/app/conf /srv/app/src_extensions
 
 CKAN_RUN="/usr/local/bin/ckan -c $CKAN_INI run -H 0.0.0.0"
 CKAN_OPTIONS=""
@@ -77,9 +81,4 @@ if [ "$USE_HTTPS_FOR_DEV" = true ] ; then
     CKAN_OPTIONS="$CKAN_OPTIONS -C unsafe.cert -K unsafe.key"
 fi
 
-# Start the development server as the ckan user with automatic reload
-while true; do
-    $CKAN_RUN $CKAN_OPTIONS
-    echo Exit with status $?. Restarting.
-    sleep 2
-done
+exec $CKAN_RUN $CKAN_OPTIONS

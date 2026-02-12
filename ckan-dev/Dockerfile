@@ -13,7 +13,7 @@ ENV CKAN_INI=${CONFIG_DIR}/ckan.ini
 ENV CKAN_STORAGE_PATH=/var/lib/ckan
 ENV CKAN_REF=ckan-2.10.7
 ENV LC_ALL=en_US.UTF-8
-ENV CKAN__PLUGINS="image_view text_view recline_view datastore envvars"
+ENV CKAN__PLUGINS="stats activity image_view datatables_view text_view webpage_view resource_proxy envvars"
 
 WORKDIR ${APP_DIR}
 
@@ -64,6 +64,8 @@ RUN pip install -e \
     pip install -r ${SRC_DIR}/ckan/dev-requirements.txt && \
     pip install -e git+https://github.com/okfn/ckanext-envvars.git@v0.0.6#egg=ckanext-envvars
 
+RUN pip install watchdog debugpy ipython
+
 # -------------------------
 # CKAN dev requirements
 # -------------------------
@@ -84,9 +86,9 @@ RUN pip install -e \
 #     ckan config-tool ${CKAN_INI} "beaker.session.secret = " && \
 #     ckan config-tool ${CKAN_INI} "ckan.site_url = http://localhost:5000" && \
 #     ckan config-tool ${CKAN_INI} "ckan.plugins = image_view text_view recline_view datastore envvars"
-COPY setup/start_ckan_development.sh ${APP_DIR}/setart_ckan_development.sh
+COPY setup/start_ckan_development.sh ${APP_DIR}/start_ckan_development.sh
 COPY setup/prerun.py ${APP_DIR}/prerun.py
-RUN chmod +x ${APP_DIR}/setart_ckan_development.sh ${APP_DIR}/prerun.py
+RUN chmod +x ${APP_DIR}/start_ckan_development.sh ${APP_DIR}/prerun.py
 
 # COPY docker-entrypoint.sh /docker-entrypoint.sh
 # RUN chmod +x /docker-entrypoint.sh
@@ -95,5 +97,5 @@ RUN chmod +x ${APP_DIR}/setart_ckan_development.sh ${APP_DIR}/prerun.py
 
 EXPOSE 5000
 
-CMD ["/srv/app/setart_ckan_development.sh"]
+CMD ["/srv/app/start_ckan_development.sh"]
 # CMD ["ckan", "-c", "/srv/app/conf/ckan.ini", "run", "--host", "0.0.0.0"]

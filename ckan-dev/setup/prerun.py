@@ -67,6 +67,34 @@ def check_db_connection(conn_str, retry=None):
         connection.close()
 
 
+def opendstats_init():
+    plugins_env = os.environ.get("CKAN__PLUGINS", "")
+    plugins = plugins_env.split()
+
+    # 🔍 Check if opendstats plugin is enabled
+    if "opendstats" not in plugins:
+        print("[prerun] opendstats not in CKAN__PLUGINS, skipping init")
+        return
+
+    init_command = ['ckan', '-c', ckan_ini, 'opendstats', 'db-init']
+    print('[prerun] Initializing opendstats plugin - start')
+
+    try:
+        subprocess.check_output(init_command, stderr=subprocess.STDOUT)
+        print('[prerun] Initializing opendstats plugin - end')
+
+    except subprocess.CalledProcessError as e:
+        output = e.output.decode() if isinstance(e.output, bytes) else str(e.output)
+
+        if 'OperationalError' in output:
+            print(output)
+            print('[prerun] Opendstats plugin not ready, waiting before exit...')
+            time.sleep(5)
+            sys.exit(1)
+        else:
+            print(output)
+            raise
+
 def check_solr_connection(retry=None):
 
     if retry is None:
@@ -224,5 +252,6 @@ if __name__ == "__main__":
         update_plugins()
         check_datastore_db_connection()
         init_datastore_db()
+        opendstats_init()
         check_solr_connection()
         create_sysadmin()

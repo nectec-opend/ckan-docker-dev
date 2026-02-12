@@ -12,15 +12,18 @@ services:
       - "5001:5000"
     volumes:
       - ./src_extensions:/srv/app/src_extensions
-      - ./ckan_conf:/srv/app/conf
-      - ./storage:/var/lib/ckan
+      - ./conf:/srv/app/conf
+      - ckan_storage:/var/lib/ckan
+    env_file:
+      - .env
     environment:
       CKAN_SITE_URL: http://localhost:5001
-      TEST_CKAN_SQLALCHEMY_URL: postgresql://ckan:${POSTGRES_PASSWORD}@db/ckan
-      TEST_CKAN_DATASTORE_WRITE_URL: postgresql://ckan:${POSTGRES_PASSWORD}@db/datastore
-      TEST_CKAN_DATASTORE_READ_URL: postgresql://datastore_ro:${DATASTORE_READONLY_PASSWORD}@db/datastore
-      TEST_CKAN_REDIS_URL: redis://redis:6379/0
-      TEST_CKAN_SOLR_URL: http://solr:8983/solr/ckan
+      CKAN_SQLALCHEMY_URL: postgresql://ckan:${POSTGRES_PASSWORD}@db/ckan
+      CKAN_DATASTORE_WRITE_URL: postgresql://ckan:${POSTGRES_PASSWORD}@db/datastore
+      CKAN_DATASTORE_READ_URL: postgresql://datastore_ro:${DATASTORE_READONLY_PASSWORD}@db/datastore
+      CKAN_REDIS_URL: redis://redis:6379/0
+      CKAN_SOLR_URL: http://solr:8983/solr/ckan
+      CKANEXT__XLOADER__JOBS_DB__URI: postgresql://ckan:${POSTGRES_PASSWORD}@db/ckan
     depends_on:
       - db
       - redis
@@ -63,9 +66,18 @@ services:
     healthcheck:
       test: ["CMD", "redis-cli", "-e", "QUIT"]
 
+  adminer:
+    image: adminer
+    container_name: adminer-dev
+    restart: unless-stopped
+    ports:
+      - "8088:8080"
+    depends_on:
+      - db
+
 
 volumes:
-  ckan_conf:
+  ckan_storage:
   pg_data:
   solr_data:
 

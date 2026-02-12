@@ -2,5 +2,6 @@ data
 .env
 .vscode
 ckan_conf/*
+conf/*
 storage
 src_extensions/*
