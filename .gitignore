@@ -1,0 +1,6 @@
+data
+.env
+.vscode
+ckan_conf/*
+storage
+src_extensions/*
