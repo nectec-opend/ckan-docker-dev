@@ -66,36 +66,10 @@ RUN pip install -e \
 
 RUN pip install watchdog debugpy ipython
 
-# -------------------------
-# CKAN dev requirements
-# -------------------------
-# RUN pip install -r \
-#     https://raw.githubusercontent.com/ckan/ckan/${CKAN_REF}/requirements.txt
-# RUN pip install -r \
-#     https://raw.githubusercontent.com/ckan/ckan/${CKAN_REF}/dev-requirements.txt
-
-# -------------------------
-# optional dev helpers
-# -------------------------
-# RUN pip install ipython debugpy watchdog
-
-# -------------------------
-# generate ckan.ini
-# -------------------------
-# RUN ckan generate config ${CKAN_INI} && \
-#     ckan config-tool ${CKAN_INI} "beaker.session.secret = " && \
-#     ckan config-tool ${CKAN_INI} "ckan.site_url = http://localhost:5000" && \
-#     ckan config-tool ${CKAN_INI} "ckan.plugins = image_view text_view recline_view datastore envvars"
 COPY setup/start_ckan_development.sh ${APP_DIR}/start_ckan_development.sh
 COPY setup/prerun.py ${APP_DIR}/prerun.py
 RUN chmod +x ${APP_DIR}/start_ckan_development.sh ${APP_DIR}/prerun.py
 
-# COPY docker-entrypoint.sh /docker-entrypoint.sh
-# RUN chmod +x /docker-entrypoint.sh
-
-# ENTRYPOINT ["/docker-entrypoint.sh"]
-
 EXPOSE 5000
 
 CMD ["/srv/app/start_ckan_development.sh"]
-# CMD ["ckan", "-c", "/srv/app/conf/ckan.ini", "run", "--host", "0.0.0.0"]
