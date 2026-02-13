@@ -31,3 +31,20 @@ git clone https://gitlab.nectec.or.th/opend/dev-python3/ckanext-showcase.git
 # install ckanext-thai_gdc
 git clone https://gitlab.nectec.or.th/opend/ckanext-thai_gdc.git
 
+
+# ออกจาก docker exec ckan-dev
+exit
+
+# แก้ไขไฟล์ .env ** uncomment 
+
+# รัน docker compose up สำหรับ service ckan อีกครั้ง
+docker compose up -d ckan
+
+# ดู log ของ container ckan-dev
+docker logs -f ckan-dev
+
+
+
+
+
+
