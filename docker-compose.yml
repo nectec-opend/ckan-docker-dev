@@ -1,6 +1,6 @@
 services:
   ckan:
-    image: thepaeth/ckan-dev:2.10.7
+    image: ckan-2.10.7-dev:dev
     build: 
       context: ckan-dev/
       args:
