@@ -27,6 +27,7 @@ services:
     depends_on:
       - db
       - redis
+      - solr
 
   db:
     container_name: db

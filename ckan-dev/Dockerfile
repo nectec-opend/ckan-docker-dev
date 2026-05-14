@@ -51,7 +51,7 @@ RUN sed -i "/$LC_ALL/s/^# //g" /etc/locale.gen && \
 # -------------------------
 # python tools
 # -------------------------
-RUN pip install --upgrade pip "setuptools<71" wheel
+RUN pip install --upgrade "pip<26" "setuptools<70"
 
 # -------------------------
 # directories

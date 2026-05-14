@@ -30,7 +30,7 @@ fi
 
 echo "🔌 Installing DEV extensions..."
 
-pip install --upgrade pip
+pip install --upgrade "pip<26" "setuptools<70"
 
 for dir in /srv/app/src_extensions/*; do
   if [ -f "$dir/setup.py" ]; then

@@ -122,23 +122,30 @@ def check_solr_connection(retry=None):
         else:
             print('[prerun] Succesfully connected to solr, but CKAN schema not found')
 
-
 def init_db():
-
     db_command = ["ckan", "-c", ckan_ini, "db", "upgrade"]
     print("[prerun] Initializing or upgrading db - start")
+
     try:
         subprocess.check_output(db_command, stderr=subprocess.STDOUT)
         print("[prerun] Initializing or upgrading db - end")
+
     except subprocess.CalledProcessError as e:
-        if "OperationalError" in str(e.output):
+        output = e.output.decode("utf-8", errors="ignore")
+
+        if "OperationalError" in output:
             print("[prerun] Database not ready, waiting a bit before exit...")
             time.sleep(5)
             sys.exit(1)
+
+        elif "DuplicateTable" in output or "already exists" in output:
+            print("[prerun] Database tables already exist, skip db upgrade for dev...")
+            return
+
         else:
-            print(str(e))
-            print(e.output)
-            raise e
+            print(e)
+            print(output)
+            raise
 
 
 def init_datastore_db():
